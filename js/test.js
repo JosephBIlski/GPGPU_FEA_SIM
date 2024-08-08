@@ -58,7 +58,8 @@ class LineGeom extends THREE.BufferGeometry {
 }
 
 let lastTime = 0;
-// let stats = new Stats();
+let stats = new Stats();
+document.body.appendChild(stats.dom)
 
 // Controls
 const scene = new THREE.Scene();
@@ -691,7 +692,7 @@ function bindRenderLoop() {
 
 function animate() {
     render();
-    // stats.update();
+    stats.update();
 }
 
 function render() {
