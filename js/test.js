@@ -63,7 +63,8 @@ document.body.appendChild(stats.dom)
 
 // Controls
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa6a8ab);
+scene.background = new THREE.Color(0x89adf5);
+scene.fog = new THREE.Fog( 0xcccccc, 10, 15 );
 
 // global variables
 
@@ -78,7 +79,7 @@ function initGlobals() {
         renderer: null,
         controls: null,
         last: performance.now(),
-        ticks: 100,
+        ticks: 25,
         timeDiff: null,
         gpuCompute: null,
         cubeUniforms: null,
@@ -110,7 +111,7 @@ function initGlobals() {
         fVertCoords: null,
         epsFromBot: .01,
         loadedObj: null,
-        fileName: '/cube.obj',
+        fileName: '/bunny_scaled.obj',
         resetSim: null,
         gui: null,
         floorAtY0: true,
@@ -135,7 +136,7 @@ function initControls() {
 // GUI
 initGUI();
 
-initSim('/teapot.obj');
+initSim(globals.fileName);
 
 // load bunny
 function initSim(fileName) {
@@ -144,8 +145,13 @@ function initSim(fileName) {
     globals.fileName = fileName;
     initRenderer();
     initControls();
-    const axesHelper = new THREE.AxesHelper(5.);
-    scene.add(axesHelper);
+    // const axesHelper = new THREE.AxesHelper(5.);
+    // scene.add(axesHelper);
+    const floorPlane = new THREE.PlaneGeometry(50,50);
+    floorPlane.rotateX(-Math.PI * 0.5);
+    const floorMat = new THREE.MeshBasicMaterial({color: 0xebebeb});
+    const floorMesh = new THREE.Mesh(floorPlane, floorMat);
+    scene.add(floorMesh);
     loader.load(
         globals.fileName,
         function (object) {
@@ -190,13 +196,16 @@ function initSim(fileName) {
 
 function initGUI() {
     globals.gui = new GUI;
-    globals.gui.add(globals, 'fileName', ['/cube.obj', '/bunny_scaled.obj', '/teapot.obj']).onFinishChange(value => {
+    let fileC = globals.gui.add(globals, 'fileName', ['/cube.obj', '/bunny_scaled.obj', '/teapot.obj']);
+    fileC.onFinishChange(value => {
         globals.renderer.setAnimationLoop(null);
         globals.gui.close();
         initSim(value);
     });
+    fileC.name("Load File")
 
-    globals.gui.add(globals, 'EA', 1, 100, 1).onFinishChange(() => {
+    let eaC = globals.gui.add(globals, 'EA', 1, 100, 1);
+    eaC.onFinishChange(() => {
         globals.accelerationUniforms['EA'] = { value: globals.EA };
         globals.accelerationUniforms['m'] = { value: globals.mass / globals.nodeNum };
         // update dependent uniform values
@@ -205,7 +214,10 @@ function initGUI() {
         globals.damping = 2 * globals.dampingRatio * Math.sqrt(globals.mass / globals.nodeNum * globals.EA);
         globals.accelerationUniforms['c'] = { value: globals.damping };
     });
-    globals.gui.add(globals, 'mass', 1, 100, 1).onFinishChange(() => {
+    eaC.name("Young's Modulus * CrossSec Area")
+
+    let mC = globals.gui.add(globals, 'mass', 1, 100, 1);
+    mC.onFinishChange(() => {
         globals.accelerationUniforms['EA'] = { value: globals.EA };
         globals.accelerationUniforms['m'] = { value: globals.mass / globals.nodeNum };
         // update dependent uniform values
@@ -214,20 +226,28 @@ function initGUI() {
         globals.damping = 2 * globals.dampingRatio * Math.sqrt(globals.mass / globals.nodeNum * globals.EA);
         globals.accelerationUniforms['c'] = { value: globals.damping };
     });
-    globals.gui.add(globals, 'floorAtY0').onFinishChange(() => {
+    mC.name("Total mass of system");
+
+    let floorC = globals.gui.add(globals, 'floorAtY0');
+    floorC.onFinishChange(() => {
         globals.velocityUniforms['floorOn'] = { value: globals.floorAtY0 };
         globals.accelerationUniforms['floorOn'] = { value: globals.floorAtY0 };
         globals.positionUniforms['floorOn'] = { value: globals.floorAtY0 };
     });
-    globals.gui.add(globals, 'dampingScale', 0, 2, .25).onFinishChange(() => {
+    floorC.name("Enable Solid Floor");
+
+    let dampC = globals.gui.add(globals, 'dampingScale', 0, 2, .25);
+    dampC.onFinishChange(() => {
         globals.maxNatFreq = Math.sqrt(globals.EA / (globals.mass / globals.nodeNum));
         globals.damping = globals.dampingScale * globals.dampingRatio * Math.sqrt(globals.mass / globals.nodeNum * globals.EA);
         globals.accelerationUniforms['c'] = { value: globals.damping };
     });
-    globals.gui.add(globals, 'ticks', 1, 1000, 10);
-    globals.gui.add(globals, 'delta', 1E-5, 1E-2, 1000);
+    dampC.name("Damping Factor")
+    
+    globals.gui.add(globals, 'ticks', 1, 1000, 10).name("Updates Per Frame");
+    globals.gui.add(globals, 'delta', [1E-5, 1E-4, 1E-3]).name("Simulation deltaT");
     globals.resetSim = resetSim;
-    globals.gui.add(globals, 'resetSim');
+    globals.gui.add(globals, 'resetSim').name("Reset Simulation");
 }
 
 function resetSim() {
@@ -332,19 +352,19 @@ function initLineCoords() {
 
     for (let i = 0; i < globals.lineIndexes.length; i++) {
         let x = (globals.lineIndexes[i] % globals.width) / globals.width;
-        let y = ~~(globals.lineIndexes[i] / globals.width) / globals.height;
+        let y = Math.trunc(globals.lineIndexes[i] / globals.width) / globals.height;
 
         uv.push(x);
         uv.push(y);
 
         if (i % 2 == 0) {
             let x = (globals.lineIndexes[i + 1] % globals.width) / globals.width;
-            let y = ~~(globals.lineIndexes[i + 1] / globals.width) / globals.height;
+            let y = Math.trunc(globals.lineIndexes[i + 1] / globals.width) / globals.height;
             uvOther.push(x);
             uvOther.push(y);
         } else {
             let x = (globals.lineIndexes[i - 1] % globals.width) / globals.width;
-            let y = ~~(globals.lineIndexes[i - 1] / globals.width) / globals.height;
+            let y = Math.trunc(globals.lineIndexes[i - 1] / globals.width) / globals.height;
             uvOther.push(x);
             uvOther.push(y);
         }
