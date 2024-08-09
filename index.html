@@ -2,17 +2,14 @@
 <html lang="en">
 
 <head>
-	<meta charset="utf-8">
-
+	<meta charset="utf-8">
 	<title>GPGPU Experimentation</title>
-	<base href=".">
-  <script type="module" crossorigin src="./assets/index-CyiHEnRX.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Dzug0I9h.css">
+  <script type="module" crossorigin src="/assets/index-CCqrBmxv.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dzug0I9h.css">
 </head>
 
 <body>
-	<canvas id="c"></canvas>
-
+	<canvas id="c"></canvas>
 	<script type="x-shader/x-vertex" id="lineVS">
 			out float strain;
 			out vec3 posDebug;
@@ -29,9 +26,9 @@
 			attribute uint index;
 
 			void main() {
-				vec4 pos = texture2D(texturePosition, vec2(uv.x,0.));
-				vec4 vel = texture2D(textureVelocity, vec2(uv.x,0));
-				vec4 accel = texture2D(textureAcceleration, vec2(uv.x,0));
+				vec4 pos = texture2D(texturePosition, vec2(uv.x,uv.y));
+				vec4 vel = texture2D(textureVelocity, vec2(uv.x,uv.y));
+				vec4 accel = texture2D(textureAcceleration, vec2(uv.x,uv.y));
 				vec4 posOther = texture2D(texturePosition, uvOther);
 				float d = length(pos.xyz - posOther.xyz);
 				//float d = distance(pos.xyz, posOther.xyz);
@@ -57,7 +54,7 @@
 			in vec3 posDebug;
 			in float strain;
 			void main() {
-				fragColor = vec4(strain,0.,1.-strain,1.);
+				fragColor = vec4(strain*1.5,0.,1.-strain*1.5,1.);
 				//fragColor = vec4(abs(posDebug.x),0.,0.,1.);
 				//fragColor = vec4(posDebug,1.);
 				//fragColor = vec4(uvDebug,0.,1.);
@@ -170,13 +167,13 @@
 			void main() {
 				vec2 uv = gl_FragCoord.xy / resolution.xy;
 				vec4 force = vec4(0.);
-				vec4 curPos = texture2D(texturePosition, vec2(uv.x, 0.));
+				vec4 curPos = texture2D(texturePosition, vec2(uv.x, uv.y));
 				float hitFloor = 0.;
 				for (int i = 0; i < nodeCount; i++){
 					float val = texture2D(connectivityTexture, vec2(float(i)*textelSize, uv.x)).x;
 					if (val > .5) {
 						// distance/position force
-						vec4 loc1 = texture2D(texturePosition, vec2(uv.x, 0.));
+						vec4 loc1 = texture2D(texturePosition, vec2(uv.x, uv.y));
 						vec4 loc2 = texture2D(texturePosition, vec2(float(i)*textelSize, 0.));
 						vec3 loc1init = texture2D(initPosTexture, vec2(uv.x, 0.)).xyz;
 						vec3 loc2init = texture2D(initPosTexture, vec2(float(i)*textelSize, 0.)).xyz;
