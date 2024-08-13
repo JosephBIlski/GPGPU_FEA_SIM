@@ -10,7 +10,6 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /* TODO: 
-- add stats
 - auto calc delta
 - add simple GUI
     - create function that doesn't hard refresh the scene, also a reset button?
@@ -161,7 +160,6 @@ function initSim(fileName) {
             object.traverse(function (node) {
                 if (node.isMesh) {
                     let tmpGeo = node.geometry;
-                    console.log(tmpGeo)
                     // tmpGeo.scale(scale);
                     if (tmpGeo.attributes.normal) {
                         delete tmpGeo.attributes.normal;
@@ -521,6 +519,8 @@ function initComp() {
     fillZerosTexture(velocityTex);
     fillZerosTexture(accelerationTex);
 
+    console.log(positionTex);
+
     fillConnectivityTexture(connectivityTexture, globals.lineIndexes, globals.nodeNum);
     // fillFixedTexture2(fixedTexture);
     fillZerosTexture(fixedTexture);
@@ -541,8 +541,8 @@ function initComp() {
     // globals.delta = Math.sqrt(1/(2*Math.PI*globals.maxNatFreq));
     globals.dampingRatio = .5;
     globals.damping = globals.dampingScale * globals.dampingRatio * Math.sqrt(globals.mass / globals.nodeNum * globals.EA);
-    console.log('damping', globals.damping)
-    console.log('delta', globals.delta)
+    // console.log('damping', globals.damping)
+    // console.log('delta', globals.delta)
 
     // get position uniforms and set them
     globals.positionUniforms = globals.positionVariable.material.uniforms;
