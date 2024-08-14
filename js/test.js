@@ -77,7 +77,7 @@ function initGlobals() {
         renderer: null,
         controls: null,
         last: performance.now(),
-        ticks: 1,
+        ticks: 10,
         timeDiff: null,
         gpuCompute: null,
         cubeUniforms: null,
