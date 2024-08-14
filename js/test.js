@@ -10,7 +10,6 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /* TODO: 
-- add stats
 - auto calc delta
 - add simple GUI
     - create function that doesn't hard refresh the scene, also a reset button?
@@ -111,6 +110,7 @@ function initGlobals() {
         epsFromBot: .01,
         loadedObj: null,
         fileName: './bunny_scaled.obj',
+        fileName: './bunny_scaled.obj',
         resetSim: null,
         gui: null,
         floorAtY0: true,
@@ -127,6 +127,7 @@ function initRenderer() {
     globals.renderer = new THREE.WebGLRenderer({ antialias: true, canvas: globals.canvas });
     globals.renderer.setSize(window.innerWidth, window.innerHeight, false);
     globals.renderer.render(scene, globals.camera);
+    // console.log(globals.renderer.capabilities)
     const gl = globals.renderer.getContext();
     globals.maxTextSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     console.log("Max texture size:", globals.maxTextSize);
@@ -200,6 +201,7 @@ function initSim(fileName) {
 
 function initGUI() {
     globals.gui = new GUI;
+    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny_scaled.obj', './teapot.obj']);
     let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny_scaled.obj', './teapot.obj']);
     fileC.onFinishChange(value => {
         globals.renderer.setAnimationLoop(null);
