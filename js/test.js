@@ -95,7 +95,7 @@ function initGlobals() {
         initLen: [],
         nodeNum: null,
         width: null,
-        height: 1.,
+        height: 1,
         extForce: null,
         fixedNodes: null,
         mass: 50,
@@ -173,13 +173,14 @@ function initSim(fileName) {
                     if (tmpGeo.attributes.uv) {
                         delete tmpGeo.attributes.uv;
                     }
-                    let idxedBufferGeom = BufferGeometryUtils.mergeVertices(tmpGeo, 1.E-100);
+                    let idxedBufferGeom = BufferGeometryUtils.mergeVertices(tmpGeo, 1E-10);
                     globals.vertCoordinates = tmpGeo.attributes.position.array;
                     globals.nodeCoordinates = idxedBufferGeom.attributes.position.array;
                     globals.triIndexes = idxedBufferGeom.index.array;
                 }
             });
             globals.nodeNum = globals.nodeCoordinates.length / 3;
+            console.log(globals.nodeNum)
             globals.width = globals.nodeCoordinates.length / 3 / globals.height;
             globals.widthPow2 = nextPowOfTwo(globals.width);
             initLineCoords();
@@ -201,7 +202,7 @@ function initSim(fileName) {
 
 function initGUI() {
     globals.gui = new GUI;
-    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny_scaled.obj', './teapot.obj']);
+    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny.obj', './teapot.obj']);
     fileC.onFinishChange(value => {
         globals.renderer.setAnimationLoop(null);
         globals.gui.close();
@@ -417,7 +418,6 @@ function initLineCoords() {
         'textureVelocity': { value: null },
         'textureAcceleration': { value: null },
         'time': { value: 0.0 },
-        'width': { value: globals.widthPow2 },
     };
 
     // shader for material
@@ -432,45 +432,6 @@ function initLineCoords() {
     const mesh = new THREE.LineSegments(geometry, material);
     globals.loadedObj = mesh;
     scene.add(mesh);
-}
-// set up cube geometry with cube class and material
-function initLines(nodeCoordinates) {
-
-    const geometry = new LineGeom(nodeCoordinates);
-    // for Cube Vertex and Fragment Shaders
-
-    const cubeMesh = new THREE.Mesh(geometry, material);
-    cubeMesh.matrixAutoUpdate = false;
-    cubeMesh.updateMatrix();
-
-    scene.add(cubeMesh);
-
-}
-
-function initCubes() {
-
-    const geometry = new CubeGeom;
-    // for Cube Vertex and Fragment Shaders
-    globals.cubeUniforms = {
-        'texturePosition': { value: null },
-        'time': { value: 0.0 },
-        'delta': { value: 0.0 }
-    };
-
-    // shader for material
-    const material = new THREE.ShaderMaterial({
-        uniforms: globals.cubeUniforms,
-        vertexShader: document.getElementById('cubeVS').textContent,
-        fragmentShader: document.getElementById('cubeFS').textContent,
-        side: THREE.DoubleSide,
-    })
-
-    const cubeMesh = new THREE.Mesh(geometry, material);
-    cubeMesh.matrixAutoUpdate = false;
-    cubeMesh.updateMatrix();
-
-    scene.add(cubeMesh);
-
 }
 
 function initComp() {
@@ -493,8 +454,6 @@ function initComp() {
         THREE.FloatType
     );
 
-    fillInitLenTexture(initLenTexture);
-
     const initPosTexture = new THREE.DataTexture(
         new Float32Array(globals.widthPow2 * 4),
         globals.widthPow2,
@@ -502,8 +461,6 @@ function initComp() {
         THREE.RGBAFormat,
         THREE.FloatType
     );
-
-    fillPositionTexture(initPosTexture, new Float32Array(globals.nodeCoordinates))
 
     const fixedTexture = new THREE.DataTexture(
         new Float32Array(globals.widthPow2),
@@ -525,6 +482,8 @@ function initComp() {
     const velocityTex = globals.gpuCompute.createTexture();
     const positionTex = globals.gpuCompute.createTexture();
 
+    fillInitLenTexture(initLenTexture);
+    fillPositionTexture(initPosTexture, new Float32Array(globals.nodeCoordinates))
     fillPositionTexture(positionTex, new Float32Array(globals.nodeCoordinates));
     fillZerosTexture(velocityTex);
     fillZerosTexture(accelerationTex);
@@ -594,6 +553,7 @@ function initComp() {
 function fillConnectivityTexture(texture, lineIndexes, rowWidth) {
 
     const inputArray = texture.image.data;
+    inputArray.fill(0.);
 
     let node1;
     let node2;
@@ -607,21 +567,10 @@ function fillConnectivityTexture(texture, lineIndexes, rowWidth) {
     texture.needsUpdate = true;
 }
 
-
-// function for getting upper triangular matrix coords
-function getConnectivityTextureCoords(row, col, N, textureWidth) {
-    if (row > col) {
-        [row, col] = [col, row]; // Swap if accessing lower triangle
-    }
-    const index = (N * row) - ((row * (row + 1)) / 2) + col - row - 1;
-    const x = index % textureWidth;
-    const y = Math.floor(index / textureWidth);
-    return [x, y];
-}
-
 function fillPositionTexture(texture, nodeCoordinates) {
 
     let inputArray = texture.image.data;
+    inputArray.fill(0);
     let i = 0;
     for (let k = 0; k < nodeCoordinates.length; k += 3) {
 
@@ -640,6 +589,7 @@ function fillPositionTexture(texture, nodeCoordinates) {
 
 function fillInitLenTexture(texture) {
     let inputArray = texture.image.data;
+    inputArray.fill(0);
 
     for (let i = 0; i < globals.initLen.length; i++) {
         inputArray[i] = globals.initLen[i];
@@ -649,13 +599,10 @@ function fillInitLenTexture(texture) {
 
 function fillExtForceTexture(texture) {
     let inputArray = texture.image.data;
+    inputArray.fill(0);
 
     for (let i = 0; i < globals.nodeNum; i++) {
-        if (i % 4 == 1) {
-            inputArray[i] = globals.gravity * globals.mass / globals.nodeNum;
-        } else {
-            inputArray[i] = 0;
-        }
+        inputArray[4*i + 1] = globals.gravity * globals.mass / globals.nodeNum;
     }
     texture.needsUpdate = true;
 
@@ -720,7 +667,7 @@ function fillRandTexture(texture) {
 }
 
 function nextPowOfTwo(n) {
-    console.log(Math.ceil(Math.log2(n)));
+    //console.log(Math.ceil(Math.log2(n)));
     return Math.pow(2, Math.ceil(Math.log2(n)));
 }
 
@@ -775,8 +722,6 @@ function render() {
         globals.lineUniforms['textureAcceleration'].value = globals.gpuCompute.getCurrentRenderTarget(globals.accelerationVariable).texture;
 
     }
-    //globals.renderer.update();
-
     globals.renderer.render(scene, globals.camera);
 
     // globals.time = globals.time + globals.delta;

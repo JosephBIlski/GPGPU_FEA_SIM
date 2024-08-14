@@ -18,7 +18,6 @@
 			out float strain;
 			out vec3 posDebug;
 			out vec2 uvDebug;
-			//attribute vec2 uv;
 			attribute vec2 uvOther;
 			attribute float initLen;
 			uniform sampler2D texturePosition;
@@ -26,13 +25,12 @@
 			uniform sampler2D textureAcceleration;
 			uniform float time;
 			uniform float textelSize;
-			uniform uint width;
 			attribute uint index;
 
 			void main() {
-				vec4 pos = texture2D(texturePosition, vec2(uv.x,uv.y));
-				vec4 vel = texture2D(textureVelocity, vec2(uv.x,uv.y));
-				vec4 accel = texture2D(textureAcceleration, vec2(uv.x,uv.y));
+				vec4 pos = texture2D(texturePosition, uv);
+				vec4 vel = texture2D(textureVelocity, uv);
+				vec4 accel = texture2D(textureAcceleration, uv);
 				vec4 posOther = texture2D(texturePosition, uvOther);
 				float d = length(pos.xyz - posOther.xyz);
 				//float d = distance(pos.xyz, posOther.xyz);
@@ -60,9 +58,6 @@
 			in float strain;
 			void main() {
 				fragColor = vec4(strain*1.5,0.,1.-strain*1.5,1.);
-				//fragColor = vec4(abs(posDebug.x),0.,0.,1.);
-				//fragColor = vec4(posDebug,1.);
-				//fragColor = vec4(uvDebug,0.,1.);
 			}
 		</script>
 	<script type="x-shader/x-fragment" id="fragmentShaderDragging">
@@ -85,7 +80,6 @@
 		precision highp float;
 
 		uniform float time;
-		uniform float textelSize;
 		uniform float delta;
 		uniform sampler2D fixedTexture;
 		uniform sampler2D prevAccel;
@@ -124,9 +118,7 @@
 			precision highp float;
 
 			uniform float time;
-			uniform float textelSize;
 			uniform float delta;
-			uniform sampler2D extForceTexture;
 			uniform sampler2D prevAccel;
 			uniform bool floorOn;
 			float gamma = .5;
@@ -147,19 +139,18 @@
 				if (length(newVel) > 20.){
 					newVel = normalize(newVel)*20.;
 				} */
-				if (length(newVel) < .0005){
+				
+				/*if (length(newVel) < .0005){
 					newVel = vec3(0.);
-				}
+				}*/
 				gl_FragColor = vec4(newVel, 1.);
 			}
 		</script>
 	<script type="x-shader/x-fragment" id="fragmentShaderAcceleration">
 		precision highp float;
 
-		//uniform float time;
 		uniform float textelSize;
 		uniform sampler2D connectivityTexture;
-		//uniform sampler2D texturePosition;
 		uniform sampler2D extForceTexture;
 		uniform int nodeCount;
 		uniform sampler2D initPosTexture;
@@ -173,13 +164,13 @@
 		void main() {
 			vec2 uv = gl_FragCoord.xy / resolution.xy;
 			vec4 force = vec4(0.);
-			vec4 curPos = texture2D(texturePosition, vec2(uv.x, uv.y));
+			vec4 curPos = texture2D(texturePosition, uv);
 			float hitFloor = 0.;
 			for (int i = 0; i < nodeCount; i++){
 				float val = texture2D(connectivityTexture, vec2(float(i)*textelSize, uv.x)).x;
 				if (val > .5) {
 					// distance/position force
-					vec4 loc1 = texture2D(texturePosition, vec2(uv.x, uv.y));
+					vec4 loc1 = texture2D(texturePosition, uv);
 					vec4 loc2 = texture2D(texturePosition, vec2(float(i)*textelSize, 0.));
 					vec3 loc1init = texture2D(initPosTexture, vec2(uv.x, 0.)).xyz;
 					vec3 loc2init = texture2D(initPosTexture, vec2(float(i)*textelSize, 0.)).xyz;
