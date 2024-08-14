@@ -11,6 +11,8 @@
 	<canvas id="c"></canvas>
 	<script type="module" src="js/test.js"></script>
 	<script type="x-shader/x-vertex" id="lineVS">
+			precision highp float;
+
 			out float strain;
 			out vec3 posDebug;
 			out vec2 uvDebug;
@@ -48,7 +50,7 @@
 		</script>
 	<script type="x-shader/x-fragment" id="lineFS">
 
-			//precision mediump float;
+			precision highp float;
 			out vec4 fragColor;
 			in vec2 uvDebug;
 			in vec3 posDebug;

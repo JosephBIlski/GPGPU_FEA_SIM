@@ -126,6 +126,7 @@ function initRenderer() {
     globals.renderer = new THREE.WebGLRenderer({ antialias: true, canvas: globals.canvas });
     globals.renderer.setSize(window.innerWidth, window.innerHeight, false);
     globals.renderer.render(scene, globals.camera);
+    // console.log(globals.renderer.capabilities)
 }
 
 function initControls() {
