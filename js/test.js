@@ -64,13 +64,12 @@ document.body.appendChild(stats.dom)
 // Controls
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x89adf5);
-scene.fog = new THREE.Fog( 0xcccccc, 10, 15 );
+scene.fog = new THREE.Fog(0xcccccc, 10, 15);
+console.log(THREE.REVISION)
 
 // global variables
 
 let globals = initGlobals();
-initRenderer();
-initControls();
 
 function initGlobals() {
     return {
@@ -79,7 +78,7 @@ function initGlobals() {
         renderer: null,
         controls: null,
         last: performance.now(),
-        ticks: 25,
+        ticks: 1,
         timeDiff: null,
         gpuCompute: null,
         cubeUniforms: null,
@@ -111,7 +110,7 @@ function initGlobals() {
         fVertCoords: null,
         epsFromBot: .01,
         loadedObj: null,
-        fileName: '/bunny_scaled.obj',
+        fileName: './bunny_scaled.obj',
         resetSim: null,
         gui: null,
         floorAtY0: true,
@@ -119,6 +118,7 @@ function initGlobals() {
         gravity: -6.,
         pointerPos: [0, 0],
         pointerClicked: null,
+        maxTextSize: null,
     }
 }
 
@@ -127,6 +127,9 @@ function initRenderer() {
     globals.renderer = new THREE.WebGLRenderer({ antialias: true, canvas: globals.canvas });
     globals.renderer.setSize(window.innerWidth, window.innerHeight, false);
     globals.renderer.render(scene, globals.camera);
+    const gl = globals.renderer.getContext();
+    globals.maxTextSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    console.log("Max texture size:", globals.maxTextSize);
 }
 
 function initControls() {
@@ -134,7 +137,7 @@ function initControls() {
 }
 
 // GUI
-initGUI();
+// initGUI();
 
 initSim(globals.fileName);
 
@@ -147,9 +150,9 @@ function initSim(fileName) {
     initControls();
     // const axesHelper = new THREE.AxesHelper(5.);
     // scene.add(axesHelper);
-    const floorPlane = new THREE.PlaneGeometry(50,50);
+    const floorPlane = new THREE.PlaneGeometry(50, 50);
     floorPlane.rotateX(-Math.PI * 0.5);
-    const floorMat = new THREE.MeshBasicMaterial({color: 0xebebeb});
+    const floorMat = new THREE.MeshBasicMaterial({ color: 0xebebeb });
     const floorMesh = new THREE.Mesh(floorPlane, floorMat);
     scene.add(floorMesh);
     loader.load(
@@ -158,10 +161,10 @@ function initSim(fileName) {
             // const bunnyMat = new THREE.MeshBasicMaterial({color: "#0377fc"})
             // bunnyMat.wireframe = true;
             // const mesh = new THREE.Mesh(geometry, bunnyMat);
+            // scene.add(object)
             object.traverse(function (node) {
                 if (node.isMesh) {
                     let tmpGeo = node.geometry;
-                    console.log(tmpGeo)
                     // tmpGeo.scale(scale);
                     if (tmpGeo.attributes.normal) {
                         delete tmpGeo.attributes.normal;
@@ -169,7 +172,7 @@ function initSim(fileName) {
                     if (tmpGeo.attributes.uv) {
                         delete tmpGeo.attributes.uv;
                     }
-                    let idxedBufferGeom = BufferGeometryUtils.mergeVertices(tmpGeo, 1E-7);
+                    let idxedBufferGeom = BufferGeometryUtils.mergeVertices(tmpGeo, 1.E-100);
                     globals.vertCoordinates = tmpGeo.attributes.position.array;
                     globals.nodeCoordinates = idxedBufferGeom.attributes.position.array;
                     globals.triIndexes = idxedBufferGeom.index.array;
@@ -177,6 +180,7 @@ function initSim(fileName) {
             });
             globals.nodeNum = globals.nodeCoordinates.length / 3;
             globals.width = globals.nodeCoordinates.length / 3 / globals.height;
+            globals.widthPow2 = nextPowOfTwo(globals.width);
             initLineCoords();
             fitCameraToObject(globals);
             initComp();
@@ -196,7 +200,7 @@ function initSim(fileName) {
 
 function initGUI() {
     globals.gui = new GUI;
-    let fileC = globals.gui.add(globals, 'fileName', ['/cube.obj', '/bunny_scaled.obj', '/teapot.obj']);
+    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny_scaled.obj', './teapot.obj']);
     fileC.onFinishChange(value => {
         globals.renderer.setAnimationLoop(null);
         globals.gui.close();
@@ -243,7 +247,7 @@ function initGUI() {
         globals.accelerationUniforms['c'] = { value: globals.damping };
     });
     dampC.name("Damping Factor")
-    
+
     globals.gui.add(globals, 'ticks', 1, 1000, 10).name("Updates Per Frame");
     globals.gui.add(globals, 'delta', [1E-5, 1E-4, 1E-3]).name("Simulation deltaT");
     globals.resetSim = resetSim;
@@ -351,20 +355,20 @@ function initLineCoords() {
     let uvOther = [];
 
     for (let i = 0; i < globals.lineIndexes.length; i++) {
-        let x = (globals.lineIndexes[i] % globals.width) / globals.width;
-        let y = Math.trunc(globals.lineIndexes[i] / globals.width) / globals.height;
+        let x = (globals.lineIndexes[i] % globals.widthPow2) / globals.widthPow2;
+        let y = Math.trunc(globals.lineIndexes[i] / globals.widthPow2) / globals.height;
 
         uv.push(x);
         uv.push(y);
 
         if (i % 2 == 0) {
-            let x = (globals.lineIndexes[i + 1] % globals.width) / globals.width;
-            let y = Math.trunc(globals.lineIndexes[i + 1] / globals.width) / globals.height;
+            let x = (globals.lineIndexes[i + 1] % globals.widthPow2) / globals.widthPow2;
+            let y = Math.trunc(globals.lineIndexes[i + 1] / globals.widthPow2) / globals.height;
             uvOther.push(x);
             uvOther.push(y);
         } else {
-            let x = (globals.lineIndexes[i - 1] % globals.width) / globals.width;
-            let y = Math.trunc(globals.lineIndexes[i - 1] / globals.width) / globals.height;
+            let x = (globals.lineIndexes[i - 1] % globals.widthPow2) / globals.widthPow2;
+            let y = Math.trunc(globals.lineIndexes[i - 1] / globals.widthPow2) / globals.height;
             uvOther.push(x);
             uvOther.push(y);
         }
@@ -412,7 +416,7 @@ function initLineCoords() {
         'textureVelocity': { value: null },
         'textureAcceleration': { value: null },
         'time': { value: 0.0 },
-        'width': { value: globals.width },
+        'width': { value: globals.widthPow2 },
     };
 
     // shader for material
@@ -469,27 +473,30 @@ function initCubes() {
 }
 
 function initComp() {
-    globals.gpuCompute = new GPUComputationRenderer(globals.width, globals.height, globals.renderer);
-
+    globals.gpuCompute = new GPUComputationRenderer(globals.widthPow2, globals.height, globals.renderer);
+    
+    // There is a much better implementation of this possible w/ sparse matrix storage
     const connectivityTexture = new THREE.DataTexture(
-        new Float32Array(globals.nodeNum * globals.nodeNum),
-        globals.nodeNum,
-        globals.nodeNum,
+        new Float32Array(globals.widthPow2 * globals.widthPow2),
+        globals.widthPow2,
+        globals.widthPow2,
         THREE.RedFormat,
         THREE.FloatType
     );
 
     const initLenTexture = new THREE.DataTexture(
-        new Float32Array(globals.initLen),
-        globals.nodeNum,
+        new Float32Array(globals.widthPow2),
+        globals.widthPow2,
         1,
         THREE.RedFormat,
         THREE.FloatType
     );
 
+    fillInitLenTexture(initLenTexture);
+
     const initPosTexture = new THREE.DataTexture(
-        new Float32Array(globals.nodeNum * 4),
-        globals.nodeNum,
+        new Float32Array(globals.widthPow2 * 4),
+        globals.widthPow2,
         1,
         THREE.RGBAFormat,
         THREE.FloatType
@@ -498,16 +505,16 @@ function initComp() {
     fillPositionTexture(initPosTexture, new Float32Array(globals.nodeCoordinates))
 
     const fixedTexture = new THREE.DataTexture(
-        new Float32Array(globals.nodeNum),
-        globals.nodeNum,
+        new Float32Array(globals.widthPow2),
+        globals.widthPow2,
         1,
         THREE.RedFormat,
         THREE.FloatType
     );
 
     const extForceTexture = new THREE.DataTexture(
-        new Float32Array(globals.nodeNum * 4),
-        globals.nodeNum,
+        new Float32Array(globals.widthPow2 * 4),
+        globals.widthPow2,
         1,
         THREE.RGBAFormat,
         THREE.FloatType
@@ -521,11 +528,10 @@ function initComp() {
     fillZerosTexture(velocityTex);
     fillZerosTexture(accelerationTex);
 
-    fillConnectivityTexture(connectivityTexture, globals.lineIndexes, globals.nodeNum);
+    fillConnectivityTexture(connectivityTexture, globals.lineIndexes, globals.widthPow2);
     // fillFixedTexture2(fixedTexture);
     fillZerosTexture(fixedTexture);
     fillExtForceTexture(extForceTexture);
-
 
     globals.positionVariable = globals.gpuCompute.addVariable('texturePosition', document.getElementById('fragmentShaderPosition').textContent, positionTex);
     globals.velocityVariable = globals.gpuCompute.addVariable('textureVelocity', document.getElementById('fragmentShaderVelocity').textContent, velocityTex);
@@ -541,8 +547,6 @@ function initComp() {
     // globals.delta = Math.sqrt(1/(2*Math.PI*globals.maxNatFreq));
     globals.dampingRatio = .5;
     globals.damping = globals.dampingScale * globals.dampingRatio * Math.sqrt(globals.mass / globals.nodeNum * globals.EA);
-    console.log('damping', globals.damping)
-    console.log('delta', globals.delta)
 
     // get position uniforms and set them
     globals.positionUniforms = globals.positionVariable.material.uniforms;
@@ -565,7 +569,7 @@ function initComp() {
     globals.accelerationUniforms = globals.accelerationVariable.material.uniforms;
     globals.accelerationUniforms['time'] = { value: 0.0 };
     globals.accelerationUniforms['delta'] = { value: 0.0 };
-    globals.accelerationUniforms['textelSize'] = { value: 1. / globals.width };
+    globals.accelerationUniforms['textelSize'] = { value: 1. / globals.widthPow2 };
     globals.accelerationUniforms['connectivityTexture'] = { value: connectivityTexture };
     globals.accelerationUniforms['nodeCount'] = { value: globals.nodeNum };
     globals.accelerationUniforms['extForceTexture'] = { value: extForceTexture };
@@ -602,6 +606,18 @@ function fillConnectivityTexture(texture, lineIndexes, rowWidth) {
     texture.needsUpdate = true;
 }
 
+
+// function for getting upper triangular matrix coords
+function getConnectivityTextureCoords(row, col, N, textureWidth) {
+    if (row > col) {
+        [row, col] = [col, row]; // Swap if accessing lower triangle
+    }
+    const index = (N * row) - ((row * (row + 1)) / 2) + col - row - 1;
+    const x = index % textureWidth;
+    const y = Math.floor(index / textureWidth);
+    return [x, y];
+}
+
 function fillPositionTexture(texture, nodeCoordinates) {
 
     let inputArray = texture.image.data;
@@ -621,10 +637,19 @@ function fillPositionTexture(texture, nodeCoordinates) {
     texture.needsUpdate = true;
 }
 
+function fillInitLenTexture(texture) {
+    let inputArray = texture.image.data;
+
+    for (let i = 0; i < globals.initLen.length; i++) {
+        inputArray[i] = globals.initLen[i];
+    }
+    texture.needsUpdate = true;
+}
+
 function fillExtForceTexture(texture) {
     let inputArray = texture.image.data;
 
-    for (let i = 0; i < inputArray.length; i++) {
+    for (let i = 0; i < globals.nodeNum; i++) {
         if (i % 4 == 1) {
             inputArray[i] = globals.gravity * globals.mass / globals.nodeNum;
         } else {
@@ -691,6 +716,11 @@ function fillRandTexture(texture) {
         inputArray[i] = Math.random() * .2;
     }
     texture.needsUpdate = true;
+}
+
+function nextPowOfTwo(n) {
+    console.log(Math.ceil(Math.log2(n)));
+    return Math.pow(2, Math.ceil(Math.log2(n)));
 }
 
 function onWindowResize() {
