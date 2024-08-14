@@ -202,7 +202,7 @@ function initSim(fileName) {
 
 function initGUI() {
     globals.gui = new GUI;
-    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny.obj', './teapot.obj']);
+    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny_scaled.obj', './teapot.obj']);
     fileC.onFinishChange(value => {
         globals.renderer.setAnimationLoop(null);
         globals.gui.close();
