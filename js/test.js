@@ -110,7 +110,7 @@ function initGlobals() {
         fVertCoords: null,
         epsFromBot: .01,
         loadedObj: null,
-        fileName: '/bunny_scaled.obj',
+        fileName: './bunny_scaled.obj',
         resetSim: null,
         gui: null,
         floorAtY0: true,
@@ -195,7 +195,7 @@ function initSim(fileName) {
 
 function initGUI() {
     globals.gui = new GUI;
-    let fileC = globals.gui.add(globals, 'fileName', ['/cube.obj', '/bunny_scaled.obj', '/teapot.obj']);
+    let fileC = globals.gui.add(globals, 'fileName', ['./cube.obj', './bunny_scaled.obj', './teapot.obj']);
     fileC.onFinishChange(value => {
         globals.renderer.setAnimationLoop(null);
         globals.gui.close();
