@@ -31,31 +31,6 @@ OVERVIEW FOR DRAG-NODES -- look at https://github.com/mrdoob/three.js/blob/maste
 */
 const loader = new OBJLoader();
 
-class LineGeom extends THREE.BufferGeometry {
-
-    constructor(nodeCoordinates) {
-        super();
-
-        const points = nodeCoordinates.length;
-
-        // cube verticies
-        const vertices = new THREE.BufferAttribute(new Float32Array(nodeCoordinates), 3);
-
-        // reference for which vertex we're on (normalized)
-        // const references = new THREE.BufferAttribute(new Float32Array(points * 2), 2);
-
-        // reference for which face of the cube we're on
-        // const cubeFace = new THREE.BufferAttribute(new Float32Array(points), 1);
-
-        this.setAttribute('position', vertices);
-        // this.setAttribute('reference', references);
-        // this.setAttribute('cubeFace', cubeFace);
-
-        // console.log(cubeFace.array);
-        this.scale(.5, .5, .5);
-    }
-}
-
 let lastTime = 0;
 let stats = new Stats();
 document.body.appendChild(stats.dom)
